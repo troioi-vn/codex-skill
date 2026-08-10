@@ -25,6 +25,11 @@ separate worktrees; never let two Codex processes edit one working tree.
 A single coherent run beats several context-starved calls. Do not split merely because the
 user said "split the task."
 
+Do split when a run has been **killed for running too long** — that is an operational fact
+about your harness, not a preference. Split along outcomes that stand alone ("staff can
+hand over and take back" / "the system reminds and chases"), tell each run which half is
+not its job, and name the files the other half owns so the boundary cannot blur.
+
 ## Select the model and effort
 
 Respect an explicit user choice. Otherwise:
@@ -51,6 +56,14 @@ fallback only when the user or enclosing workflow permits it.
 
 A detailed plan does **not** make a task mechanical. Judge by the cost of a subtle mistake,
 not by how precisely you wrote the prompt.
+
+Judge **breadth** separately from difficulty. A wide task — a backend layer plus five UI
+capabilities plus two test files — invites the cheaper model to scope itself down silently:
+you get correct work covering less ground, not wrong work. Observed with Terra on exactly
+that shape, which delivered a complete and correct Convex layer and dropped five UI
+capabilities and both test files. It reported the shortfall honestly, which is the good
+case; the bad case is a wide task where the omission is invisible in the diff. On broad
+surfaces, either move up a model or narrow the run.
 
 Default to `medium` effort. Do not ask the user to pick effort per call. Model capability
 and reasoning effort are separate choices; pass both explicitly so nothing is inherited
@@ -133,13 +146,34 @@ Validation:
 - Run <specific commands>. Report each command, its result, and anything not run.
 
 Return a concise summary of the implementation, files changed, validation results, and
-remaining risks or questions.
+remaining risks or questions. If you run out of room, stop and say plainly what you did
+not build — a truthful partial report is more useful than a tidy one.
 ```
+
+That last sentence earns its place. Asked for it, a run came back naming three UI
+capabilities and two test files it had skipped; the same model on the same shape without
+it would have produced a summary that read as complete. Cheap to add, and it converts a
+silent shortfall into a review item.
 
 Naming the tripwires is the highest-leverage part of the prompt. "Do not edit existing
 tests to make them pass" plus a list of the exact fragile contracts (a serialized payload
 shape, a count stated in prose, a deliberate ordering) prevents the failure mode where the
 suite goes green because the assertions moved.
+
+That rule needs a carve-out, or it backfires. When your change legitimately alters an
+existing expectation — a new nav route added to an asserted list, a tool count going from
+47 to 63 — say so explicitly and say where: *extending an expected list, or updating a
+count, to describe deliberate new behavior is correct; deleting a case or relaxing
+`toEqual` into `toContain` is not.* Left implicit, you get one of two bad outcomes: a red
+suite it refuses to touch, or a quietly weakened assertion.
+
+**Read your own constraints for self-contradiction before sending.** The expensive failure
+is not a vague prompt, it is a prompt that forbids the only way to do what it demands. One
+run was lost asking for a notification to deep-link with a capability token while also
+banning schema changes — the plaintext token existed only at creation and only its hash was
+stored, so the request was impossible as written. Codex stopped and asked, which was
+correct and still cost a full round trip. Before sending, check each "do not" against each
+"must".
 
 Ask for diagnosis only when diagnosis was requested; ask for implementation and validation
 when a change was requested. Do not request a plan-only pass unless the plan is the
@@ -177,6 +211,12 @@ Other flags:
   it inside an already-isolated environment. `--full-auto` is deprecated.
 - `--skip-git-repo-check` only for a verified non-repository workspace.
 
+**Options belong to `codex exec`, so they must come before any subcommand.**
+`codex exec -C repo --approve-for-me -o out.md resume --last -` works;
+`codex exec -C repo resume --last --approve-for-me -o out.md -` dies with
+`error: unexpected argument '--approve-for-me' found`. Both read naturally, and the wrong
+one fails in the way described below — silently, looking like success.
+
 If a flag is rejected, read `codex exec --help` and adapt to the installed version. Do not
 guess replacement safety flags.
 
@@ -195,7 +235,8 @@ your harness as exit 0.
 
 A CLI argument error is silent and looks exactly like success: **exit 2, empty stdout, no
 `-o` file, and an unchanged worktree** — indistinguishable at a glance from "ran and
-decided to change nothing." Before reviewing anything, confirm all three:
+decided to change nothing." The commonest cause is an option placed after a subcommand
+(see above). Before reviewing anything, confirm all three:
 
 1. `exit.code` is `0`;
 2. the `-o` file exists and is non-empty;
@@ -212,6 +253,16 @@ never `resume --last`.
 Treat nonzero exit as failed delegation. Distinguish a tool/argument failure from an
 incomplete code change, and fix the cause before retrying.
 
+**A killed run is a different case, and re-running it blindly wastes the work.** When your
+own harness stops a long background run, no exit-code file is written at all — absent, not
+nonzero. Inspect before deciding: `git status` against your snapshot, `wc -l` the new files
+for truncation, and the tail of stderr to see how far it got. Two outcomes are common and
+call for opposite responses. A clean worktree means it was still reading and nothing is
+lost; re-run, ideally narrower. A worktree full of complete files means it was killed while
+emitting its final summary, and the work may be finished — in one case it type-checked and
+passed the full suite untouched. Validate what is on disk before throwing it away, and
+finish small gaps yourself rather than spending another round trip.
+
 ## Review
 
 Codex's summary is a claim, not evidence. Verify independently:
@@ -222,6 +273,12 @@ Codex's summary is a claim, not evidence. Verify independently:
 3. **Check that existing tests were not weakened**, cheaply:
    `git diff -U0 <test paths> | grep -E '^-[^-]'` — deletions should be pure refactors
    (a signature gaining an optional parameter, an import line), never removed assertions.
+   Expect legitimate hits and know them on sight: a type union widening
+   (`"services" | "events"` → `+ "rent"`), an import gaining a name
+   (`{ api }` → `{ api, internal }`), a fixture list growing, or an expectation replaced
+   with a new value (`toHaveLength(47)` → `toHaveLength(63)`). Read the paired `+` line
+   before judging — a replaced expectation and a deleted one are one character apart in
+   this output, and mean opposite things.
 4. Re-run the type check, linter, and test suite **yourself**. Compare the test count to
    before; it should have gone up by roughly the number of cases you asked for.
 5. Check acceptance criteria, edge cases, error handling, security and data implications,
@@ -232,12 +289,25 @@ When auditing test coverage, grep for the *behavior* (a distinctive identifier, 
 code, a header name), not for `it(` — table-driven tests (`it.each`) hide their cases from
 a title-only search and will make you conclude coverage is missing when it is not.
 
-To correct, resume the same session with concrete evidence:
+**When it stops and offers you options, check the repository before picking one.** A halt
+on a genuine contradiction is the behavior you want and should say so — but the options it
+proposes are the ones it can see, and every one may be a change when the answer is an
+existing convention. Asked how to link a notification with no capability token available,
+it offered a new schema field, dropping the link, or rotating the token; the codebase
+already answered it three files away with `link: token ? deepLink : "/account/bookings"`.
+Grep for how the nearest sibling feature solves the same problem, and reply with that
+rather than authorizing a change.
+
+To correct, resume the same session with concrete evidence — note the options precede the
+subcommand:
 
 ```bash
-codex exec -C /absolute/path/to/repository resume <SESSION_ID> \
-  "Address these review findings, rerun the relevant checks, and report: <findings>"
+codex exec -C /absolute/path/to/repository --approve-for-me -o /unique/path/fix.md \
+  resume <SESSION_ID> - < /unique/path/findings.md
 ```
+
+Send findings via stdin from a file for anything longer than a sentence; a positional
+prompt string is fine only for a one-liner.
 
 Use `resume --last` only with exactly one recent session in that directory and no
 concurrency. Do not repeat model/effort/sandbox overrides on resume unless changing them.
