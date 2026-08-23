@@ -1,6 +1,6 @@
 ---
 name: delegate-to-codex
-description: Invoke Codex CLI as a subordinate implementation or investigation agent from another agent. Use when an outer agent should decompose substantial repository work, choose a Codex model and reasoning effort, construct a high-quality bounded prompt, run `codex exec`, monitor it, review its changes, request corrections, and optionally commit or push after verification. Do not use for ordinary direct work inside Codex or to recursively spawn Codex unless the user explicitly requests nested delegation.
+description: Use when the user explicitly asks for repository work to be handed to Codex — "delegate this to codex", "have codex do it", or the slash command. Covers choosing the model, writing the handoff, running `codex exec`, reviewing the diff that comes back, and committing it. Never reach for it unasked: work you could do directly, do directly. Not for use from inside Codex unless the user asks for nested delegation.
 ---
 
 # Delegate to Codex
@@ -8,6 +8,11 @@ description: Invoke Codex CLI as a subordinate implementation or investigation a
 The orchestrator owns task selection, decomposition, final review, Git history, and user
 communication. Codex owns inspecting the repository, choosing implementation details,
 editing its bounded scope, and running validation.
+
+**Only delegate when the user asked you to.** A task being large, tedious, cross-cutting, or
+precisely specified is not a trigger — those you do yourself. Once the user has asked, the
+delegation covers the piece of work under discussion: follow-up runs, corrections, and the
+commits that finish it, until they say otherwise. You do not re-ask per run.
 
 ## Decide whether to delegate
 
@@ -29,6 +34,17 @@ Do split when a run has been **killed for running too long** — that is an oper
 about your harness, not a preference. Split along outcomes that stand alone ("staff can
 hand over and take back" / "the system reminds and chases"), tell each run which half is
 not its job, and name the files the other half owns so the boundary cannot blur.
+
+Splitting for **breadth** rather than for a kill is the other good reason, and it has a price
+worth naming out loud: every run cold-starts and re-reads the repository, so three runs over one
+feature pay for three explorations. Buy that only when the surface is genuinely wide — a backend
+layer, then the UI on top of it, then polish — and make it pay by running them **sequentially in
+one worktree, committing between each**. The commit is what does the work: it keeps each diff
+reviewable on its own, lets a bad run be discarded with `git reset` without taking the good ones
+with it, and hands the next run a tree whose earlier half is already validated. Name in every
+prompt which files the *other* runs own. Three runs converging on one component and one locale
+file is the default outcome otherwise, and it is the boundary sentence, not the split itself,
+that prevents it.
 
 ## Select the model and effort
 
@@ -79,6 +95,18 @@ Before invoking:
 4. Define one bounded outcome, its acceptance criteria, and who owns commit and push.
 5. Identify destructive, external, privileged, or deploy-triggering actions that stay
    outside Codex's authority.
+6. If the change adds to an **enumerable set** — MCP tools, routes, nav entries, status values,
+   error codes — find every assertion that counts or lists that set *before* writing the prompt,
+   and name those files in it as authorized to update. `grep -rn "toHaveLength([0-9]" <test dirs>`
+   plus a grep for the current count both as a numeral and spelled out in prose finds most of
+   them. Miss one and the run ends with a handful of failures it correctly refuses to touch,
+   costing a round trip or a manual fixup at the end.
+7. Separate the external actions that must stay outside Codex's authority — deploys, pushes,
+   publishing — from the ones the **repo's own documented workflow requires**, such as a
+   translation or codegen script that calls a paid API. Codex stops and asks before the second
+   kind. That is correct of it and still a wasted round trip, so either state in the prompt that
+   the step is the repo's documented workflow and is authorized, or plan to run it yourself once
+   the run returns.
 
 A clean worktree is worth creating before you start — it makes "every change in the diff is
 Codex's" true, which is what lets you review by diff alone. If the scope overlaps dirty
@@ -102,6 +130,15 @@ implementation detail — it should inspect the repo and match local patterns.
 - **Settled user decisions** — say "do not revisit these."
 - **Your design sketch** — label it as *shape suggestions*, subordinate to what the repo
   actually does.
+
+**Pass conclusions and coordinates, not transcripts.** If you explored the repository before
+delegating — your own reading, or a sub-agent's report — do not paste the report in. Codex
+re-reads the repo anyway and is good at it, so a pasted survey is paid for twice and is liable to
+be subtly stale by the time it is read. What is worth carrying across is only the part Codex
+would have to be lucky to find: the exact `path/file.ts:line` where the defect lives, the name of
+the helper that already solves the adjacent problem, the invariant that is true but written down
+nowhere. One line of coordinates beats a page of survey, and it is the difference between a
+prompt that orients Codex and one that competes with the repository for its attention.
 
 Template — omit empty sections:
 
@@ -154,6 +191,12 @@ That last sentence earns its place. Asked for it, a run came back naming three U
 capabilities and two test files it had skipped; the same model on the same shape without
 it would have produced a summary that read as complete. Cheap to add, and it converts a
 silent shortfall into a review item.
+
+Do not spend effort shrinking that summary further. Asked for concision it returns a few hundred
+to a couple of thousand characters, and that is not where delegation's tokens go — they go into
+**reading the diff**, which is the part you cannot skip and should not want to. Save upstream
+instead: a tighter boundary produces a smaller diff, and naming the count assertions and the
+authorized external steps before you send means you read that diff once rather than twice.
 
 Naming the tripwires is the highest-leverage part of the prompt. "Do not edit existing
 tests to make them pass" plus a list of the exact fragile contracts (a serialized payload
@@ -242,9 +285,10 @@ decided to change nothing." The commonest cause is an option placed after a subc
 2. the `-o` file exists and is non-empty;
 3. `git status` differs from your snapshot (or the task was genuinely read-only).
 
-Codex echoes the **entire prompt to stderr** before it starts working. An early `tail` of
-stderr showing your own prompt text means "started", not "progress" — do not read it as
-output.
+Codex echoes the **entire prompt to stderr** before it starts working, then everything it reads
+and thinks after that, so the file runs to tens of kilobytes on a routine task. Never `cat` it:
+`tail -c 2000` to see how far a run got, and read the `-o` file for the result. An early tail
+showing your own prompt text means "started", not "progress" — do not read it as output.
 
 For concurrent runs: a distinct handle, log, result path, and thread ID per task; a
 separate worktree per editing process; wait on every process and check every exit status;
@@ -288,6 +332,15 @@ Codex's summary is a claim, not evidence. Verify independently:
 When auditing test coverage, grep for the *behavior* (a distinctive identifier, an error
 code, a header name), not for `it(` — table-driven tests (`it.each`) hide their cases from
 a title-only search and will make you conclude coverage is missing when it is not.
+
+**A green suite is Codex grading its own work.** The cases it adds are written against the
+implementation it just wrote, so they pass by construction and their presence proves less than
+the count suggests. Read the new cases for the input the implementation does *not* handle rather
+than for coverage: an unsorted array where order reaches the user, an empty collection, the
+second item, a row dated in the past. One real defect survived a fully green suite exactly this
+way — a summary line that joined weekdays in the order they were clicked, so choosing Wednesday
+then Monday would have rendered "Wed, Mon" — because every test fed it an already-sorted list.
+The fix and its regression case took two minutes; noticing was the whole job.
 
 **When it stops and offers you options, check the repository before picking one.** A halt
 on a genuine contradiction is the behavior you want and should say so — but the options it
