@@ -392,6 +392,50 @@ material caveats or skipped checks.
 Mark clearly which claims you verified and which are Codex's. Never report success solely
 because `codex exec` exited zero.
 
+## Propose improvements to this skill
+
+Every delegation teaches something about delegating. Once the work is reported, say what the
+session taught and offer it to the user as a concrete edit — they decide whether it lands. Offer
+it unprompted, including when the session went well: a technique that visibly worked is worth
+recording too. Never edit this file without being asked.
+
+**The bar is whether it would have changed what you did.** A lesson earns its place if it would
+have saved a round trip, caught a defect earlier, or prevented a wrong turn. In practice that
+means:
+
+- a surprise that cost a round trip — an assertion you did not know existed, a halt you could
+  have pre-authorized, a flag that behaved unlike its documentation;
+- a defect that survived Codex's own green suite, together with the review habit that would have
+  caught it;
+- a boundary, splitting, or prompt technique that visibly worked or visibly failed;
+- a model or effort choice that was wrong in a way you can diagnose — not merely a run you wish
+  had gone better.
+
+**What does not belong here**, because this is the commonest way a skill rots:
+
+- anything true only of the repository you were working in. A schema quirk, a build trap, a
+  naming convention belongs in that repo's own `AGENTS.md` or docs, where the next agent working
+  there will actually read it. Route by who needs it: "how to delegate" here, "how this codebase
+  behaves" there. Most sessions produce both, and putting them in one place loses both.
+- a single data point confirming advice already given. Mention it to the user in passing if you
+  like; do not write a paragraph asserting what the file already asserts.
+- a lesson you did not actually learn. A session where nothing surprised you should produce no
+  edit, and saying so plainly is a better report than a manufactured insight.
+
+**Fold in; do not append.** This file is read start to finish before every delegation, so its
+length is a cost paid on every run. A new lesson usually belongs inside an existing paragraph, as
+the sentence that makes it concrete, rather than as a section of its own. Prefer the specific
+anecdote to the general principle — "a summary line joined weekdays in click order and would have
+read Wed, Mon" gets remembered and applied, "validate ordering" does not. When a session
+contradicts advice already here, propose deleting that advice rather than qualifying it into
+vagueness, and when a section has grown past its usefulness, propose the cut alongside the
+addition.
+
+Offer it as a short proposal carrying its evidence — what happened, what it cost, the edit you
+would make. If the user accepts, commit the skill separately from the work it came out of: the
+two have different audiences, and a skill change should be reviewable without reading a feature
+diff.
+
 ## Avoid recursive delegation
 
 When this skill is loaded inside Codex itself, do not invoke another Codex process unless
