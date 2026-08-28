@@ -53,7 +53,7 @@ Before invoking:
 6. If the change adds to an **enumerable set** — MCP tools, routes, nav entries, status values, error codes — find every assertion that counts or lists that set *before* writing the prompt, and name those files in it as authorized to update. `grep -rn "toHaveLength([0-9]" <test dirs>` plus a grep for the current count both as a numeral and spelled out in prose finds most of them. Miss one and the run ends with a handful of failures it correctly refuses to touch, costing a round trip or a manual fixup at the end.
 7. Separate the external actions that must stay outside Codex's authority — deploys, pushes, publishing — from the ones the **repo's own documented workflow requires**, such as a translation or codegen script that calls a paid API. Codex stops and asks before the second kind. That is correct of it and still a wasted round trip, so either state in the prompt that the step is the repo's documented workflow and is authorized, or plan to run it yourself once the run returns.
 
-A clean worktree is worth creating before you start — it makes "every change in the diff is Codex's" true, which is what lets you review by diff alone. If the scope overlaps dirty files, say so in the prompt or isolate the work.
+A clean worktree is worth creating before you start — it makes "every change in the diff is Codex's" true, which is what lets you review by diff alone. That property is a starting condition, not an invariant: it survives only while nothing else writes to the tree. If the scope overlaps dirty files, say so in the prompt or isolate the work.
 
 Let Codex load the repo's own `AGENTS.md`, user config, and skills. Do not paste them into the prompt. Do not use `--ignore-user-config` or `--ignore-rules` outside reproducibility testing.
 
@@ -208,7 +208,7 @@ Limit correction loops. If the same material problem survives two focused attemp
 Git history stays under orchestrator control:
 
 - Tell Codex not to commit or push.
-- Review and validate before staging; stage only files belonging to the bounded task.
+- Review and validate before staging, then stage **by name** — never `git add -A`. Re-list the changed files immediately before committing and compare them against the set you reviewed; the two are not always equal. A user with their own interactive Codex open in the same repository rewrote 252 lines of an unrelated page between the review and the commit, and `git add -A` swept it into the feature commit, which then had to be reset back out. Where a pre-commit hook stashes unstaged changes (lint-staged does), skip it with `--no-verify` while another process is live in the tree — safe only once its checks have already passed on the full tree.
 - Write a commit message describing the verified outcome.
 - Commit only when requested or clearly authorized. "Implement X" is not authorization to commit X.
 - Push only on explicit request or when the enclosing workflow requires it. Check first whether the push triggers CI, deployment, or publication.
