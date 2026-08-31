@@ -65,7 +65,7 @@ Give Codex the intent and everything that affects correctness. Then get out of t
 
 **Separate three kinds of input explicitly**, because Codex weighs them differently:
 
-- **Verified external facts** — a spec revision, a changed API, a fetched doc. Codex cannot derive these from the repo and **its training data may contradict them**. Label them authoritative and say *"do not correct these from memory."* Without that line, a model will quietly "fix" a correct new field name back to the one it remembers.
+- **Verified external facts** — a spec revision, a changed API, a fetched doc. Codex cannot derive these from the repo and **its training data may contradict them**. Label them authoritative and say *"do not correct these from memory."* Without that line, a model will quietly "fix" a correct new field name back to the one it remembers. The same section is the right home for an **in-repo idiom that pattern-matches to a famous bug**, which is the case people forget to declare because the fact is not external at all. A repo storing money in whole currency units rounds with `Math.round((x + Number.EPSILON) * 100) / 100`, and every model has seen ten thousand Stripe codebases where `/ 100` converts cents; declared authoritative and correct, all seven call sites survived a branded-`Money` refactor, including the one variant that carried no `Number.EPSILON` and had to stay that way. Undeclared, that is a silent hundredfold bug wearing the shape of a cleanup.
 - **Settled user decisions** — say "do not revisit these."
 - **Your design sketch** — label it as *shape suggestions*, subordinate to what the repo actually does.
 
