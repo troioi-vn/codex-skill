@@ -28,7 +28,7 @@ Choosing among the GPT-5.6 models and setting reasoning effort. Setting up the w
 
 **A CLI argument error looks exactly like success.** Exit 2, empty stdout, no `-o` file, and an unchanged worktree read the same as "ran and decided to change nothing." The usual cause is an option placed after a subcommand. Options belong to `codex exec`, so they go before `resume`.
 
-**Never append `; echo "EXIT=$?"` to the invocation.** The trailing command's own success becomes the exit status, so a failed run reports as 0.
+**Never append `; echo "EXIT=$?"` to the invocation, and do not read a pipeline's exit code.** The trailing command's own success becomes the exit status, so a failed run reports as 0. `pnpm test | tail` has the same problem and is easier to type: read the runner's summary line instead.
 
 **Do not `cat` stderr.** Codex echoes the entire prompt to stderr before it starts, then everything it reads and thinks after that. Tens of kilobytes on a routine task. Use `tail -c 2000` and read the `-o` file for the result.
 
