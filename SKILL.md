@@ -31,7 +31,7 @@ Respect an explicit user choice. Otherwise:
 
 - `gpt-5.6-luna` — cost-sensitive, high-volume work where the path and success check are unusually clear: repetitive edits, simple transformations, bulk test-case generation, or many small independent tasks. Avoid it when a subtle mistake would be expensive.
 - `gpt-5.6-terra` — the default for mechanical and well-scoped implementation work: routine test additions, narrow refactors, repetitive config changes, dependency bumps, and ordinary feature changes with clear acceptance criteria. It balances capability and cost better than Luna when repository interpretation still matters.
-- `gpt-5.6-sol` — anything needing judgment: architecture, ambiguous behavior, unfamiliar or cross-cutting code, hard debugging, security or data-safety work, migrations, performance analysis, or a change whose correct shape must be discovered.
+- `gpt-5.6-sol` — anything needing judgment: architecture, ambiguous behavior, unfamiliar or cross-cutting code, hard debugging, security or data-safety work, migrations, performance analysis, or a change whose correct shape must be discovered. Reach for it freely; Sol at `low` effort is the ordinary pairing, and it costs less than the name of the dial suggests.
 - `gpt-5.5` — a strong previous-generation model; use on request, for a known compatibility reason, or when an existing evaluated workflow is pinned to it.
 - `gpt-5.4` — use only on request, for compatibility, or for an existing workflow already evaluated on it. Prefer the current GPT-5.6 family for new delegation.
 
@@ -41,7 +41,13 @@ A detailed plan does **not** make a task mechanical. Judge by the cost of a subt
 
 Judge **breadth** separately from difficulty. A wide task — a backend layer plus five UI capabilities plus two test files — invites the cheaper model to scope itself down silently: you get correct work covering less ground, not wrong work. Observed with Terra on exactly that shape, which delivered a complete and correct Convex layer and dropped five UI capabilities and both test files. It reported the shortfall honestly, which is the good case; the bad case is a wide task where the omission is invisible in the diff. On broad surfaces, either move up a model or narrow the run.
 
-Default to `medium` effort. Do not ask the user to pick effort per call. Model capability and reasoning effort are separate choices; pass both explicitly so nothing is inherited silently. Do not silently swap an explicitly requested model.
+**Default to `low` effort, on Sol as much as on the cheaper models.** Across heavy use of this skill, Sol at `low` and Sol at `medium` came back close enough on ordinary delegations that the difference was hard to see in the diff: what carries a judgment-heavy task is the model, not the extra reasoning tokens on top of it. Pick the model for the difficulty of the work, then leave effort at `low` unless you can name the step that needs more.
+
+Raise to `medium` for genuinely hard runs — a change whose correct shape has to be discovered, a bug with no reproduction yet, a migration holding several invariants true at once, anything where a subtle mistake would be expensive to detect later. Breadth is not that: a wide, shallow task wants a narrower boundary or a stronger model, not a bigger reasoning budget.
+
+`high` is not yours to spend. It costs materially more tokens than `medium`, so ask the user first, say which part of the task needs it, and run at `medium` if they decline or if there is no one to ask. A user who asked for `high` has already authorized it — do not re-ask.
+
+Otherwise do not ask the user to pick effort per call. Model capability and reasoning effort are separate choices; pass both explicitly so nothing is inherited silently. Do not silently swap an explicitly requested model.
 
 ## Establish the workspace
 
@@ -131,7 +137,7 @@ Verified against codex-cli 0.147.0:
 codex exec \
   -C /absolute/path/to/repository \
   -m gpt-5.6-sol \
-  -c 'model_reasoning_effort="medium"' \
+  -c 'model_reasoning_effort="low"' \
   --approve-for-me \
   -o /unique/path/last-message.md \
   - < /unique/path/prompt.md
