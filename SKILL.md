@@ -1,6 +1,12 @@
 ---
 name: delegate-to-codex
-description: Use when the user explicitly asks for repository work to be handed to Codex: "delegate this to codex", "have codex do it", or the slash command. Covers choosing the model, writing the handoff, running `codex exec`, reviewing the diff that comes back, and committing it. Never reach for it unasked: work you could do directly, do directly. Not for use from inside Codex unless the user asks for nested delegation.
+description: >-
+  Use when the user explicitly asks for repository work to be handed to
+  Codex: "delegate this to codex", "have codex do it", or the slash command.
+  Covers choosing the model, writing the handoff, running `codex exec`,
+  reviewing the diff that comes back, and committing it. Never reach for it
+  unasked: work you could do directly, do directly. Not for use from inside
+  Codex unless the user asks for nested delegation.
 ---
 
 # Delegate to Codex
@@ -47,6 +53,8 @@ A detailed plan does not make a task mechanical. Judge by the cost of a subtle m
 5. If the change adds to an enumerable set (MCP tools, routes, nav entries, status values, error codes), find every assertion that counts or lists it before writing the prompt and name those files as authorized to update. `grep -rn "toHaveLength([0-9]" <test dirs>`, plus a grep for the count as a numeral and spelled out in prose, finds most.
 6. Accessible names are an enumerable set too. Reusing a component puts its labels on screen twice, and `getAllByRole` then fails by ambiguity rather than by behavior. Grep the locale catalog first, and say the new instance needs its own strings while the original's stay byte-identical.
 
+A boundary drawn in paths does not hold inside a file several audiences share — a locale catalog, a constants module, a config. Name the frozen regions within it, or a rename sent after the manage-side copy also rewrites the marketing sentence sitting three keys away.
+
 A clean worktree makes "every change in the diff is Codex's" true, which is what lets you review by diff alone. It survives only while nothing else writes to the tree. If the scope overlaps dirty files, say so in the prompt or isolate the work.
 
 Let Codex load the repo's own `AGENTS.md`, user config, and skills. Do not paste them in, and do not use `--ignore-user-config` or `--ignore-rules` outside reproducibility testing.
@@ -84,6 +92,7 @@ Scope and constraints:
 - Inspect the existing implementation and follow established local patterns.
 - Preserve pre-existing user changes: <paths, or "the worktree is clean">.
 - Do not modify <out-of-scope areas>; report the need instead.
+- Inside <shared file>, leave <frozen regions> alone.
 - Do not commit, push, deploy, publish, or perform external writes.
 - Resolve ordinary implementation details autonomously from repository evidence.
 - If a material ambiguity would change public behavior, data safety, or scope, stop and explain rather than guessing.
