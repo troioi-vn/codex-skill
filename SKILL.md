@@ -31,16 +31,17 @@ When you do split:
 
 Respect an explicit user choice. Otherwise:
 
-- `gpt-5.6-luna`: cost-sensitive, high-volume work with an unusually clear path and success check. Avoid where a subtle mistake would be expensive.
+- `gpt-6.1-sol`: the default. Anything needing judgment, and most other work too: architecture, ambiguous behavior, unfamiliar or cross-cutting code, hard debugging, security and data-safety work, migrations, performance, a change whose correct shape must be discovered. We are still learning how it behaves, so record surprises (see the last section).
+- `gpt-6-astra`: a TOKEN EATER. Only for creative tasks and really hard problems that Sol has already failed or clearly cannot carry. Never pick it for routine work.
 - `gpt-5.6-terra`: mechanical, well-scoped implementation. Routine test additions, narrow refactors, config changes, dependency bumps, ordinary features with clear acceptance criteria.
-- `gpt-5.6-sol`: anything needing judgment. Architecture, ambiguous behavior, unfamiliar or cross-cutting code, hard debugging, security and data-safety work, migrations, performance, or a change whose correct shape must be discovered. Reach for it freely.
-- `gpt-5.5` and `gpt-5.4`: previous generations. On request, for compatibility, or for a workflow already evaluated on them.
+- `gpt-5.6-luna`: cost-sensitive, high-volume work with an unusually clear path and success check. Avoid where a subtle mistake would be expensive.
+- `gpt-5.6-sol`, `gpt-5.5`: previous generations. On request, for compatibility, or for a workflow already evaluated on them.
 
-`gpt-5.6` aliases `gpt-5.6-sol`; use the explicit name so routing is obvious. If the selected model is not enabled for the local account, report that and fall back only where permitted.
+Use explicit model names so routing is obvious. If the selected model is not enabled for the local account, report that and fall back only where permitted.
 
 A detailed plan does not make a task mechanical. Judge by the cost of a subtle mistake, not by how precisely you wrote the prompt. Judge breadth separately from difficulty: a wide task invites the cheaper model to scope itself down without saying so, so move up a model or narrow the run.
 
-**Default to `low` effort, Sol included.** Sol at `low` and at `medium` are hard to tell apart in the diff; the model carries a judgment-heavy task, not the reasoning tokens on top of it. Raise to `medium` for genuinely hard runs: a shape that has to be discovered, a bug with no reproduction yet, a migration holding several invariants true at once.
+**Default to `gpt-6.1-sol` at `medium` effort.** Drop to `low` for easier tasks: a clear path, a narrow scope, an obvious success check.
 
 **`high` is not yours to spend.** Ask the user first, name the part that needs it, and run at `medium` if they decline or there is no one to ask. A user who asked for `high` has already authorized it. Otherwise do not ask about effort per call. Pass model and effort explicitly, and never swap a requested model without saying so.
 
@@ -127,8 +128,8 @@ Verified against codex-cli 0.147.0:
 ```bash
 codex exec \
   -C /absolute/path/to/repository \
-  -m gpt-5.6-sol \
-  -c 'model_reasoning_effort="low"' \
+  -m gpt-6.1-sol \
+  -c 'model_reasoning_effort="medium"' \
   --approve-for-me \
   -o /unique/path/last-message.md \
   - < /unique/path/prompt.md
