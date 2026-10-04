@@ -117,7 +117,7 @@ Keep that last sentence. It converts a silent shortfall into a review item. Do n
 
 For a signature or type migration rather than a behavior change, ask for existing tests to be adapted with a local shim named after what it replaces, so the assertions stay byte-identical. A rewritten assertion and a weakened one are the same diff shape.
 
-**Read your own constraints for self-contradiction before sending.** A prompt that forbids the only way to do what it demands costs a full round trip. Check each "do not" against each "must".
+**Read your own constraints for self-contradiction before sending.** A prompt that forbids the only way to do what it demands costs a full round trip. Check each "do not" against each "must". A change that deliberately reverses a behavior collides with "do not edit existing tests": grep the tests for the old behavior and name the assertions that may change.
 
 Ask for diagnosis only when diagnosis was requested; ask for implementation and validation when a change was requested. State each constraint once. Do not add "think step by step" or generic coding advice.
 
