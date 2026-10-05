@@ -23,7 +23,7 @@ Split into independently reviewable outcomes, never file-sized fragments. Keep a
 
 When you do split:
 
-- Run the pieces sequentially in one worktree, committing between each. Concurrent runs need a separate worktree per process; never two Codex processes in one tree.
+- Run the pieces sequentially in one worktree, committing between each. Concurrent runs need a separate worktree per process; never two Codex processes in one tree. Sibling branches that touch one component break each other's test mocks on merge, so run the full suite on the merged result, not only on each branch.
 - Give every prompt a boundary sentence naming the files the *other* runs own.
 - Name the intermediate state the split invents, mark it temporary in the code, and forbid tests that assert it. The next run has to delete such a test, and a deleted assertion is indistinguishable from a weakened one under review.
 
@@ -175,7 +175,7 @@ Codex's summary is a claim, not evidence. Verify independently:
 
 When auditing coverage, grep for the behavior (a distinctive identifier, an error code, a header name), not for `it(`. Table-driven tests written with `it.each` hide their cases from a title-only search.
 
-**A green suite is Codex grading its own work.** It wrote those cases against the implementation it had just written, so they pass by construction. Read them for two things: the input the implementation does not handle, and any test that primes by hand the state the real wiring should produce. When a test sets up the integration point instead of exercising it, write the one that goes through the real path.
+**A green suite is Codex grading its own work.** It wrote those cases against the implementation it had just written, so they pass by construction. Read them for two things: the input the implementation does not handle, and any test that primes by hand the state the real wiring should produce. When a test sets up the integration point instead of exercising it, write the one that goes through the real path. Specs Codex wrote but could not run, such as e2e against a shared backend, are unverified: run them before reviewing the diff, and when one fails, ask whether the product or the expectation is wrong before accepting a test edit.
 
 **When it stops and offers you options, check the repository before picking one.** The halt is the behavior you want, but the options are the ones it can see, and each may be a change where the answer is an existing convention. Grep for how the nearest sibling feature solves the same problem, and reply with that.
 
