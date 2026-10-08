@@ -56,7 +56,7 @@ A detailed plan does not make a task mechanical. Judge by the cost of a subtle m
 
 A boundary drawn in paths does not hold inside a file several audiences share — a locale catalog, a constants module, a config. Name the frozen regions within it, or a rename sent after the manage-side copy also rewrites the marketing sentence sitting three keys away. State the acceptance criterion as an exact diff shape ("`git diff` shows exactly 78 changed lines, all `explanation` values"), so the boundary is checkable at a glance.
 
-A clean worktree makes "every change in the diff is Codex's" true, which is what lets you review by diff alone. It survives only while nothing else writes to the tree. If the scope overlaps dirty files, say so in the prompt or isolate the work.
+A clean worktree makes "every change in the diff is Codex's" true, which is what lets you review by diff alone. It survives only while nothing else writes to the tree. If the scope overlaps dirty files, say so in the prompt or isolate the work. A fresh worktree lacks gitignored files, so name any file Codex should edit outside it by absolute path into the checkout that owns it; a relative path gets a stray new copy.
 
 Let Codex load the repo's own `AGENTS.md`, user config, and skills. Do not paste them in, and do not use `--ignore-user-config` or `--ignore-rules` outside reproducibility testing.
 
