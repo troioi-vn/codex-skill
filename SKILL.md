@@ -17,7 +17,7 @@ The orchestrator owns task selection, decomposition, final review, Git history, 
 
 ## Decide whether to delegate
 
-Delegate work needing sustained repository context: debugging, multi-file changes, migrations, refactors, test-backed implementation, substantial investigation. Do it yourself when it is a trivial edit, a one-command lookup, or smaller than the overhead of composing, running, and reviewing a second agent call.
+Delegate work needing sustained repository context: debugging, multi-file changes, migrations, refactors, test-backed implementation, substantial investigation. Do it yourself when it is a trivial edit, a one-command lookup, or smaller than the overhead of composing, running, and reviewing a second agent call. Codex also works as a read-only reviewer of factual prose you wrote (`-s read-only`, no `--approve-for-me`): ask for findings only, each with the exact phrase, a source, and a confidence level, and freeze style explicitly so it reports errors instead of rewrites. Independent read-only reviews can run concurrently.
 
 Split into independently reviewable outcomes, never file-sized fragments. Keep a vertical change together when its schema, implementation, tests, and docs must agree. A single coherent run beats several context-starved calls, so split only for two reasons: a run killed for running too long, or a task wide enough to be worth a cold repository re-read per run.
 
@@ -54,7 +54,7 @@ A detailed plan does not make a task mechanical. Judge by the cost of a subtle m
 5. If the change adds to an enumerable set (MCP tools, routes, nav entries, status values, error codes), find every assertion that counts or lists it before writing the prompt and name those files as authorized to update. `grep -rn "toHaveLength([0-9]" <test dirs>`, plus a grep for the count as a numeral and spelled out in prose, finds most.
 6. Accessible names are an enumerable set too. Reusing a component puts its labels on screen twice, and `getAllByRole` then fails by ambiguity rather than by behavior. Grep the locale catalog first, and say the new instance needs its own strings while the original's stay byte-identical.
 
-A boundary drawn in paths does not hold inside a file several audiences share — a locale catalog, a constants module, a config. Name the frozen regions within it, or a rename sent after the manage-side copy also rewrites the marketing sentence sitting three keys away.
+A boundary drawn in paths does not hold inside a file several audiences share — a locale catalog, a constants module, a config. Name the frozen regions within it, or a rename sent after the manage-side copy also rewrites the marketing sentence sitting three keys away. State the acceptance criterion as an exact diff shape ("`git diff` shows exactly 78 changed lines, all `explanation` values"), so the boundary is checkable at a glance.
 
 A clean worktree makes "every change in the diff is Codex's" true, which is what lets you review by diff alone. It survives only while nothing else writes to the tree. If the scope overlaps dirty files, say so in the prompt or isolate the work.
 
