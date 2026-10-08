@@ -160,7 +160,7 @@ Codex echoes the entire prompt to stderr before it starts, then everything it re
 
 For concurrent runs: a distinct handle, log, result path, and thread ID per task; a separate worktree per editing process; wait on every process and check every exit status; never `resume --last`.
 
-Treat nonzero exit as failed delegation, distinguishing a tool or argument failure from an incomplete code change. **A killed run is a different case**, and writes no exit-code file at all. Inspect before re-running: `git status` against your snapshot, `wc -l` the new files for truncation, the tail of stderr. A clean worktree means nothing is lost, so re-run narrower. A worktree of complete files means the kill landed during the summary and the work may be finished, so validate what is on disk and close small gaps yourself.
+Treat nonzero exit as failed delegation, distinguishing a tool or argument failure from an incomplete code change. **A killed run is a different case**, and writes no exit-code file at all. Inspect before re-running: `git status` against your snapshot, `wc -l` the new files for truncation, the tail of stderr. A clean worktree means nothing is lost, so re-run narrower. A worktree of complete files means the kill landed during the summary and the work may be finished, so validate what is on disk and close small gaps yourself. A usage-limit stop looks like a failed run: exit 1, no `-o` file, partial edits on disk, and a stderr tail reading "usage limit … try again at HH:MM". Wait until then and `resume` the same session with "you were interrupted; inspect the worktree, finish, and validate" plus the original request. A fresh run would redo or fight the partial work.
 
 ## Review
 
