@@ -156,11 +156,11 @@ Long runs exceed foreground tool timeouts. Prefer background execution, writing 
 
 A CLI argument error is silent and looks exactly like success: exit 2, empty stdout, no `-o` file, an unchanged worktree. Before reviewing anything, confirm `exit.code` is `0`, the `-o` file exists and is non-empty, and `git status` differs from your snapshot unless the task was read-only.
 
-Codex echoes the entire prompt to stderr before it starts, then everything it reads and thinks, so the file runs to tens of kilobytes. Never `cat` it. Use `tail -c 2000`, and read the `-o` file for the result.
+Codex echoes the entire prompt to stderr before it starts, then everything it reads and thinks, so the file runs to tens of kilobytes. Never `cat` it. Use `tail -c 2000`, and read the `-o` file for the result. Its header does repay a look within seconds of launch: `grep -m3 -E '^(model|sandbox|reasoning effort):'` shows what is actually in force, and a wrong model is cheapest to stop before it edits anything.
 
 For concurrent runs: a distinct handle, log, result path, and thread ID per task; a separate worktree per editing process; wait on every process and check every exit status; never `resume --last`.
 
-Treat nonzero exit as failed delegation, distinguishing a tool or argument failure from an incomplete code change. **A killed run is a different case**, and writes no exit-code file at all. Inspect before re-running: `git status` against your snapshot, `wc -l` the new files for truncation, the tail of stderr. A clean worktree means nothing is lost, so re-run narrower. A worktree of complete files means the kill landed during the summary and the work may be finished, so validate what is on disk and close small gaps yourself. A usage-limit stop looks like a failed run: exit 1, no `-o` file, partial edits on disk, and a stderr tail reading "usage limit … try again at HH:MM". Wait until then and `resume` the same session with "you were interrupted; inspect the worktree, finish, and validate" plus the original request. A fresh run would redo or fight the partial work.
+Treat nonzero exit as failed delegation, distinguishing a tool or argument failure from an incomplete code change. **A killed run is a different case**, and writes no exit-code file at all. Kill by a PID read from `ps`, never `pkill -f <session id>`: the pattern also matches the shell running `pkill`, which then dies with exit 144 and takes the rest of that command with it. Inspect before re-running: `git status` against your snapshot, `wc -l` the new files for truncation, the tail of stderr. A clean worktree means nothing is lost, so re-run narrower. A worktree of complete files means the kill landed during the summary and the work may be finished, so validate what is on disk and close small gaps yourself. A usage-limit stop looks like a failed run: exit 1, no `-o` file, partial edits on disk, and a stderr tail reading "usage limit … try again at HH:MM". Wait until then and `resume` the same session with "you were interrupted; inspect the worktree, finish, and validate" plus the original request. A fresh run would redo or fight the partial work.
 
 ## Review
 
@@ -182,11 +182,12 @@ When auditing coverage, grep for the behavior (a distinctive identifier, an erro
 To correct, resume the same session with concrete evidence. Options precede the subcommand:
 
 ```bash
-codex exec -C /absolute/path/to/repository --approve-for-me -o /unique/path/fix.md \
+codex exec -C /absolute/path/to/repository -m <same model> -c 'model_reasoning_effort="<same>"' \
+  --approve-for-me -o /unique/path/fix.md \
   resume <SESSION_ID> - < /unique/path/findings.md
 ```
 
-Send findings via stdin from a file for anything longer than a sentence. Use `resume --last` only with exactly one recent session in that directory and no concurrency, and do not repeat model, effort, or sandbox overrides on resume unless changing them. If the same material problem survives two focused attempts, reconsider the prompt, the model, the boundary, or whether to do it yourself.
+Send findings via stdin from a file for anything longer than a sentence. Use `resume --last` only with exactly one recent session in that directory and no concurrency, and pass `-m` and the effort override again on every resume: `resume` does not inherit the session's model but falls back to the config default, silently (seen on codex-cli 0.162.1). A sandbox change on resume does take effect, so a read-only interview or diagnosis turn can continue in the same session with `--approve-for-me` to implement, keeping everything it has read. If the same material problem survives two focused attempts, reconsider the prompt, the model, the boundary, or whether to do it yourself.
 
 ## Commit, push, and report
 
