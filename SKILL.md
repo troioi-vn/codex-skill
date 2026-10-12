@@ -95,6 +95,7 @@ Scope and constraints:
 - Do not modify <out-of-scope areas>; report the need instead.
 - Inside <shared file>, leave <frozen regions> alone.
 - Do not commit, push, deploy, publish, or perform external writes.
+- Do not change dependency manifests or lockfiles. If the work needs a package, stop and say which one and why.
 - Resolve ordinary implementation details autonomously from repository evidence.
 - If a material ambiguity would change public behavior, data safety, or scope, stop and explain rather than guessing.
 
@@ -166,7 +167,7 @@ Treat nonzero exit as failed delegation, distinguishing a tool or argument failu
 
 Codex's summary is a claim, not evidence. Verify independently:
 
-1. Diff `git status` against the pre-run snapshot; note files it touched that you did not scope.
+1. Diff `git status` against the pre-run snapshot; note files it touched that you did not scope. A manifest or lockfile change is a decision, not a detail, even when it only promotes a package already installed transitively: that one moved remark into the Convex bundle.
 2. Read the full diff of the source changes.
 3. Check that existing tests were not weakened: `git diff -U0 <test paths> | grep -E '^-[^-]'`. Deletions should be pure refactors, never removed assertions. Read the paired `+` line before judging; a replaced expectation and a deleted one are one character apart.
 4. Re-run the type check, linter, and test suite yourself. Compare the test count to before.
@@ -176,6 +177,8 @@ Codex's summary is a claim, not evidence. Verify independently:
 When auditing coverage, grep for the behavior (a distinctive identifier, an error code, a header name), not for `it(`. Table-driven tests written with `it.each` hide their cases from a title-only search.
 
 **A green suite is Codex grading its own work.** It wrote those cases against the implementation it had just written, so they pass by construction. Read them for two things: the input the implementation does not handle, and any test that primes by hand the state the real wiring should produce. When a test sets up the integration point instead of exercising it, write the one that goes through the real path. Specs Codex wrote but could not run, such as e2e against a shared backend, are unverified: run them before reviewing the diff, and when one fails, ask whether the product or the expectation is wrong before accepting a test edit.
+
+**Look at user-visible copy in every locale the change touches**, rendered, not only English. Tests usually run in English, so translations reach review untested. A Russian notice ended in a double period: the abbreviated month (`окт.`) already carries one, and the sentence added another.
 
 **When it stops and offers you options, check the repository before picking one.** The halt is the behavior you want, but the options are the ones it can see, and each may be a change where the answer is an existing convention. Grep for how the nearest sibling feature solves the same problem, and reply with that.
 
