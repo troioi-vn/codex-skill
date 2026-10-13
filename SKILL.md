@@ -182,7 +182,7 @@ When auditing coverage, grep for the behavior (a distinctive identifier, an erro
 
 **When it stops and offers you options, check the repository before picking one.** The halt is the behavior you want, but the options are the ones it can see, and each may be a change where the answer is an existing convention. Grep for how the nearest sibling feature solves the same problem, and reply with that.
 
-To correct, resume the same session with concrete evidence. Options precede the subcommand:
+To correct, resume the same session with concrete evidence. A cleanup request riding along with a fix ("simplify it if you can") widens the scope: name the behavior it must keep, or leave it out. One once dropped a deliberate case while tidying an effect. Options precede the subcommand:
 
 ```bash
 codex exec -C /absolute/path/to/repository -m <same model> -c 'model_reasoning_effort="<same>"' \
