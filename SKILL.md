@@ -17,13 +17,13 @@ The orchestrator owns task selection, decomposition, final review, Git history, 
 
 ## Decide whether to delegate
 
-Delegate work needing sustained repository context: debugging, multi-file changes, migrations, refactors, test-backed implementation, substantial investigation. Do it yourself when it is a trivial edit, a one-command lookup, or smaller than the overhead of composing, running, and reviewing a second agent call. Codex also works as a read-only reviewer of factual prose you wrote (`-s read-only`, no `--approve-for-me`): ask for findings only, each with the exact phrase, a source, and a confidence level, and freeze style explicitly so it reports errors instead of rewrites. Independent read-only reviews can run concurrently.
+Delegate work needing sustained repository context: debugging, multi-file changes, migrations, refactors, test-backed implementation, substantial investigation. Do it yourself when it is a trivial edit, a one-command lookup, or smaller than the overhead of composing, running, and reviewing a second agent call. Codex also works as a read-only reviewer of factual prose you wrote (`-s read-only`, no `--approve-for-me`): ask for findings only, each with the exact phrase, a source, and a confidence level, and freeze style explicitly so it reports errors instead of rewrites. Independent read-only reviews can run concurrently. Codex can also hunt for bugs: give each run one user's slice of the product (an owner of one business type, a customer), let it drive the running app with scratch Playwright specs, and ask for findings with repro steps and severity, no fixes. You triage them into fix runs.
 
 Split into independently reviewable outcomes, never file-sized fragments. Keep a vertical change together when its schema, implementation, tests, and docs must agree. A single coherent run beats several context-starved calls, so split only for two reasons: a run killed for running too long, or a task wide enough to be worth a cold repository re-read per run.
 
 When you do split:
 
-- Run the pieces sequentially in one worktree, committing between each. Concurrent runs need a separate worktree per process; never two Codex processes in one tree. Sibling branches that touch one component break each other's test mocks on merge, so run the full suite on the merged result, not only on each branch.
+- Run the pieces sequentially in one worktree, committing between each. Concurrent runs need a separate worktree per process; never two Codex processes in one tree. Separate worktrees still share one machine and one account: five fix runs in parallel hit the usage limit together and timed out each other's full test suites, while the same five run one after another in a loop script took 3–7 minutes each. Run them in sequence unless the runs are short and light. Sibling branches that touch one component break each other's test mocks on merge, so run the full suite on the merged result, not only on each branch.
 - Give every prompt a boundary sentence naming the files the *other* runs own.
 - Name the intermediate state the split invents, mark it temporary in the code, and forbid tests that assert it. The next run has to delete such a test, and a deleted assertion is indistinguishable from a weakened one under review.
 
@@ -94,7 +94,7 @@ Scope and constraints:
 - Preserve pre-existing user changes: <paths, or "the worktree is clean">.
 - Do not modify <out-of-scope areas>; report the need instead.
 - Inside <shared file>, leave <frozen regions> alone.
-- Do not commit, push, deploy, publish, or perform external writes.
+- Do not commit, push, deploy, publish, or perform external writes (anything leaving this machine; the dev server and backend on 127.0.0.1 are in scope).
 - Do not change dependency manifests or lockfiles. If the work needs a package, stop and say which one and why.
 - Resolve ordinary implementation details autonomously from repository evidence.
 - If a material ambiguity would change public behavior, data safety, or scope, stop and explain rather than guessing.
@@ -124,7 +124,7 @@ Ask for diagnosis only when diagnosis was requested; ask for implementation and 
 
 ## Invoke Codex
 
-Verified against codex-cli 0.147.0:
+Verified against codex-cli 0.163.0:
 
 ```bash
 codex exec \
@@ -140,6 +140,7 @@ Send the prompt via stdin from a uniquely named file. Never interpolate user-con
 
 - **`--approve-for-me` cannot be combined with `--sandbox`.** It already implies the workspace-write sandbox, and passing both fails argument parsing before any work happens. Use `-s read-only` without `--approve-for-me` for pure inspection.
 - **Options belong to `codex exec`, so they must come before any subcommand.** `codex exec -C repo --approve-for-me -o out.md resume --last -` works. The same flags after `resume` die with `error: unexpected argument '--approve-for-me' found`, silently and looking like success.
+- The `--approve-for-me` sandbox has no network, localhost included. A run that drives a dev server, a local backend, or Playwright needs `-c sandbox_workspace_write.network_access=true`. With it, a UI run can screenshot its own change, so put that in the acceptance criteria rather than keeping the visual check for yourself.
 - `--add-dir /exact/path` only when another writable directory is needed. `--json` when a program needs event data or a thread ID, paired with `-o`. Omit `--ephemeral` when a follow-up may resume the session. `--skip-git-repo-check` only for a verified non-repository workspace.
 - Never `--dangerously-bypass-approvals-and-sandbox` unless the user explicitly authorizes it inside an already-isolated environment. `--full-auto` is deprecated.
 
@@ -147,10 +148,10 @@ If a flag is rejected, read `codex exec --help`. Do not guess replacement safety
 
 ## Run it and confirm it actually ran
 
-Long runs exceed foreground tool timeouts. Prefer background execution, writing the exit status where nothing can overwrite it:
+Long runs exceed foreground tool timeouts. Prefer background execution, writing the exit status where nothing can overwrite it, and detach it with `setsid nohup`: a run started as your own background job dies with your session, and a restart or context compaction killed five runs mid-edit:
 
 ```bash
-{ codex exec ... > out.log 2> err.log; echo $? > exit.code; }
+setsid nohup bash -c 'codex exec ... > out.log 2> err.log; echo $? > exit.code' < /dev/null > /dev/null 2>&1 &
 ```
 
 **Never append `; echo "EXIT=$?"` or any trailing command to the invocation**, and never read a pipeline's exit code. The trailing command's own success becomes the status, so a failed run reports 0, and `pnpm test 2>&1 | tail -40` reports `tail`'s status. Trust the runner's summary line.
@@ -161,7 +162,7 @@ Codex echoes the entire prompt to stderr before it starts, then everything it re
 
 For concurrent runs: a distinct handle, log, result path, and thread ID per task; a separate worktree per editing process; wait on every process and check every exit status; never `resume --last`.
 
-Treat nonzero exit as failed delegation, distinguishing a tool or argument failure from an incomplete code change. **A killed run is a different case**, and writes no exit-code file at all. Kill by a PID read from `ps`, never `pkill -f <session id>`: the pattern also matches the shell running `pkill`, which then dies with exit 144 and takes the rest of that command with it. Inspect before re-running: `git status` against your snapshot, `wc -l` the new files for truncation, the tail of stderr. A clean worktree means nothing is lost, so re-run narrower. A worktree of complete files means the kill landed during the summary and the work may be finished, so validate what is on disk and close small gaps yourself. A usage-limit stop looks like a failed run: exit 1, no `-o` file, partial edits on disk, and a stderr tail reading "usage limit … try again at HH:MM". Wait until then and `resume` the same session with "you were interrupted; inspect the worktree, finish, and validate" plus the original request. A fresh run would redo or fight the partial work.
+Treat nonzero exit as failed delegation, distinguishing a tool or argument failure from an incomplete code change. **A killed run is a different case**, and writes no exit-code file at all. Kill by a PID read from `ps`, never `pkill -f <session id>` or a loop over `pgrep -f <pattern>`: the pattern also matches the shell running the command, which then dies with exit 144 and takes the rest of that command with it. Inspect before re-running: `git status` against your snapshot, `wc -l` the new files for truncation, the tail of stderr. A clean worktree means nothing is lost, so re-run narrower. A worktree of complete files means the kill landed during the summary and the work may be finished, so validate what is on disk and close small gaps yourself. A usage-limit stop looks like a failed run: exit 1, no `-o` file, partial edits on disk, and a stderr tail reading "usage limit … try again at HH:MM". Wait until then and `resume` the same session with "you were interrupted; inspect the worktree, finish, and validate" plus the original request. A fresh run would redo or fight the partial work.
 
 ## Review
 
@@ -176,7 +177,7 @@ Codex's summary is a claim, not evidence. Verify independently:
 
 When auditing coverage, grep for the behavior (a distinctive identifier, an error code, a header name), not for `it(`. Table-driven tests written with `it.each` hide their cases from a title-only search.
 
-**A green suite is Codex grading its own work.** It wrote those cases against the implementation it had just written, so they pass by construction. Read them for two things: the input the implementation does not handle, and any test that primes by hand the state the real wiring should produce. When a test sets up the integration point instead of exercising it, write the one that goes through the real path. Specs Codex wrote but could not run, such as e2e against a shared backend, are unverified: run them before reviewing the diff, and when one fails, ask whether the product or the expectation is wrong before accepting a test edit.
+**A green suite is Codex grading its own work.** It wrote those cases against the implementation it had just written, so they pass by construction. Read them for two things: the input the implementation does not handle, and any test that primes by hand the state the real wiring should produce. When a test sets up the integration point instead of exercising it, write the one that goes through the real path. Layout is the common case: jsdom computes none, so an overflow or wrapping fix comes back with assertions on class strings. Those passed while one of the fixes still overflowed by 200px. Replace them with a browser test at phone width that measures where the text actually renders: the glyph rects, since a card that clips its overflow hides the text without widening the page. Specs Codex wrote but could not run, such as e2e against a shared backend, are unverified: run them before reviewing the diff, and when one fails, ask whether the product or the expectation is wrong before accepting a test edit.
 
 **Look at user-visible copy in every locale the change touches**, rendered, not only English. Tests usually run in English, so translations reach review untested. A Russian notice ended in a double period: the abbreviated month (`окт.`) already carries one, and the sentence added another.
 
