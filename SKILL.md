@@ -148,9 +148,11 @@ If a flag is rejected, read `codex exec --help`. Do not guess replacement safety
 
 ## Run it and confirm it actually ran
 
-Long runs exceed foreground tool timeouts. Prefer background execution, writing the exit status where nothing can overwrite it, and detach it with `setsid nohup`: a run started as your own background job dies with your session, and a restart or context compaction killed five runs mid-edit:
+Long runs exceed foreground tool timeouts. Prefer background execution, writing the exit status where nothing can overwrite it, and detach it from your session: a run started as your own background job dies with it, and a restart or context compaction killed five runs mid-edit. `setsid nohup` is not enough where the host kills its whole cgroup on restart, as one did mid-run; on Linux with systemd, run it as a transient user unit instead, and fall back to `setsid nohup` elsewhere:
 
 ```bash
+systemd-run --user --unit=codex-<task> --collect bash -c 'codex exec ... > out.log 2> err.log; echo $? > exit.code'
+# without systemd:
 setsid nohup bash -c 'codex exec ... > out.log 2> err.log; echo $? > exit.code' < /dev/null > /dev/null 2>&1 &
 ```
 
