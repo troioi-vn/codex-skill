@@ -4,6 +4,8 @@ A Claude Code skill for handing repository work to [Codex CLI](https://developer
 
 Claude stays the orchestrator. It picks the task, writes the handoff, reviews the diff, and owns every commit. Codex reads the repo, writes the code, and runs the tests. The skill is the procedure for that split, including the parts that are easy to get wrong.
 
+The handoff prompt and whatever repository content the agent reads are sent to the model provider your Codex config points at, usually OpenAI, and runs count against your account. Do not delegate a repository you would not share with that provider.
+
 ## Why this exists
 
 Delegation fails quietly. An agent exits 0, prints a confident summary, and the summary is a claim rather than evidence. Worse, it can hand back a green test suite whose new cases were written against the code it just wrote, so they pass by construction. One real defect survived a fully green suite because every test fed the function an already-sorted list.
