@@ -13,6 +13,8 @@ description: >-
 
 The orchestrator owns task selection, decomposition, final review, Git history, and user communication. Codex owns inspecting the repository, choosing implementation details, editing its bounded scope, and running validation.
 
+**What leaves the machine.** Codex sends the handoff prompt and whatever repository content it reads to the model provider its config points at, usually OpenAI. Do not delegate a repository, or put secrets in a prompt, that the user would not share with that provider. Every run uses the user's Codex account and counts against its quota or bill, which is why the model and effort choice below is explicit.
+
 **Only delegate when the user asked you to.** Large, tedious, cross-cutting, or precisely specified is not a trigger. Once they have asked, the delegation covers the whole piece of work under discussion, including follow-up runs and the commits that finish it. Do not re-ask per run.
 
 ## Decide whether to delegate
