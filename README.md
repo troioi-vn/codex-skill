@@ -24,7 +24,7 @@ You need the `codex` CLI on your PATH and logged in.
 
 ## What it covers
 
-Choosing the model and reasoning effort: `gpt-6.1-sol` at `medium` by default, `low` for easier tasks, `gpt-6-astra` only for creative or really hard work, `high` only with the user's say-so. Setting up the workspace and snapshotting Git. Writing the handoff prompt, with a template. Running `codex exec` and confirming it really ran. Reviewing the diff without trusting the summary. Committing.
+Choosing the model and reasoning effort: `gpt-6.2-sol` at `medium` by default, `low` for easier tasks, `gpt-6-astra` only for creative or really hard work, `high` only with the user's say-so. Setting up the workspace and snapshotting Git. Writing the handoff prompt, with a template. Running `codex exec` and confirming it really ran. Reviewing the diff without trusting the summary. Committing.
 
 ## Things that bite
 

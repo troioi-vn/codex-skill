@@ -33,17 +33,17 @@ When you do split:
 
 Respect an explicit user choice. Otherwise:
 
-- `gpt-6.1-sol`: the default. Anything needing judgment, and most other work too: architecture, ambiguous behavior, unfamiliar or cross-cutting code, hard debugging, security and data-safety work, migrations, performance, a change whose correct shape must be discovered. We are still learning how it behaves, so record surprises (see the last section).
+- `gpt-6.2-sol`: the default. Anything needing judgment, and most other work too: architecture, ambiguous behavior, unfamiliar or cross-cutting code, hard debugging, security and data-safety work, migrations, performance, a change whose correct shape must be discovered. We are still learning how it behaves, so record surprises (see the last section).
 - `gpt-6-astra`: a TOKEN EATER. Only for creative tasks and really hard problems that Sol has already failed or clearly cannot carry. Never pick it for routine work.
 - `gpt-5.6-terra`: mechanical, well-scoped implementation. Routine test additions, narrow refactors, config changes, dependency bumps, ordinary features with clear acceptance criteria.
 - `gpt-5.6-luna`: cost-sensitive, high-volume work with an unusually clear path and success check. Avoid where a subtle mistake would be expensive.
-- `gpt-5.6-sol`, `gpt-5.5`: previous generations. On request, for compatibility, or for a workflow already evaluated on them.
+- `gpt-6.1-sol`, `gpt-5.6-sol`, `gpt-5.5`: previous generations. On request, for compatibility, or for a workflow already evaluated on them.
 
 Use explicit model names so routing is obvious. If the selected model is not enabled for the local account, report that and fall back only where permitted.
 
 A detailed plan does not make a task mechanical. Judge by the cost of a subtle mistake, not by how precisely you wrote the prompt. Judge breadth separately from difficulty: a wide task invites the cheaper model to scope itself down without saying so, so move up a model or narrow the run.
 
-**Default to `gpt-6.1-sol` at `medium` effort.** Drop to `low` for easier tasks: a clear path, a narrow scope, an obvious success check.
+**Default to `gpt-6.2-sol` at `medium` effort.** Drop to `low` for easier tasks: a clear path, a narrow scope, an obvious success check.
 
 **`high` is not yours to spend.** Ask the user first, name the part that needs it, and run at `medium` if they decline or there is no one to ask. A user who asked for `high` has already authorized it. Otherwise do not ask about effort per call. Pass model and effort explicitly, and never swap a requested model without saying so.
 
@@ -126,12 +126,12 @@ Ask for diagnosis only when diagnosis was requested; ask for implementation and 
 
 ## Invoke Codex
 
-Verified against codex-cli 0.163.0:
+Verified against codex-cli 0.172.0:
 
 ```bash
 codex exec \
   -C /absolute/path/to/repository \
-  -m gpt-6.1-sol \
+  -m gpt-6.2-sol \
   -c 'model_reasoning_effort="medium"' \
   --approve-for-me \
   -o /unique/path/last-message.md \
@@ -162,7 +162,7 @@ setsid nohup bash -c 'codex exec ... > out.log 2> err.log; echo $? > exit.code' 
 
 A CLI argument error is silent and looks exactly like success: exit 2, empty stdout, no `-o` file, an unchanged worktree. Before reviewing anything, confirm `exit.code` is `0`, the `-o` file exists and is non-empty, and `git status` differs from your snapshot unless the task was read-only.
 
-Codex echoes the entire prompt to stderr before it starts, then everything it reads and thinks, so the file runs to tens of kilobytes. Never `cat` it. Use `tail -c 2000`, and read the `-o` file for the result. Its header does repay a look within seconds of launch: `grep -m3 -E '^(model|sandbox|reasoning effort):'` shows what is actually in force, and a wrong model is cheapest to stop before it edits anything.
+Codex echoes the entire prompt to stderr before it starts, then everything it reads and thinks, so the file runs to tens of kilobytes. Never `cat` it. Use `tail -c 2000`, and read the `-o` file for the result. Its header does repay a look within seconds of launch: `grep -m3 -E '^(model|sandbox|reasoning effort):'` shows what is actually in force, and a wrong model is cheapest to stop before it edits anything. With `--json` that header is not written and stderr stays empty; read the model and sandbox from the session file instead: `grep -o -m3 -E '"model":"[^"]+"|"sandbox_policy":\{[^}]+' ~/.codex/sessions/*/*/*/rollout-*-<thread-id>.jsonl`.
 
 For concurrent runs: a distinct handle, log, result path, and thread ID per task; a separate worktree per editing process; wait on every process and check every exit status; never `resume --last`.
 
